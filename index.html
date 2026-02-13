@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Advanced Brute Force Prevention Login</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #eef2f7;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.login-box {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  width: 320px;
+  text-align: center;
+}
+
+input {
+  width: 92%;
+  padding: 10px;
+  margin: 8px 0;
+}
+
+button {
+  padding: 10px 20px;
+  cursor: pointer;
+  border: none;
+  background: #2563eb;
+  color: white;
+  border-radius: 6px;
+}
+
+#error { color: red; }
+#success { color: green; }
+#timer { color: orange; }
+
+.log-box {
+  margin-top: 15px;
+  max-height: 100px;
+  overflow-y: auto;
+  text-align: left;
+  font-size: 13px;
+  border-top: 1px solid #ddd;
+  padding-top: 8px;
+}
+</style>
+</head>
+<body>
+
+<div class="login-box">
+<h2>Secure Login</h2>
+<input type="text" id="username" placeholder="Username"><br>
+<input type="password" id="password" placeholder="Password"><br>
+
+<div id="captchaBox"></div>
+<input type="text" id="captchaInput" placeholder="Enter CAPTCHA"><br>
+
+<button onclick="login()">Login</button>
+<p id="error"></p>
+<p id="success"></p>
+<p id="timer"></p>
+
+<div class="log-box" id="logBox"></div>
+</div>
+
+<script>
+const correctUser = "admin";
+const correctPass = "12345";
+
+let attempts = localStorage.getItem("attempts")
+  ? parseInt(localStorage.getItem("attempts")) : 0;
+let blockUntil = localStorage.getItem("blockUntil")
+  ? parseInt(localStorage.getItem("blockUntil")) : 0;
+
+let captchaAnswer;
+createCaptcha();
+updateTimer();
+
+function createCaptcha() {
+  let a = Math.floor(Math.random()*10);
+  let b = Math.floor(Math.random()*10);
+  captchaAnswer = a + b;
+  document.getElementById("captchaBox").innerHTML =
+    "CAPTCHA: " + a + " + " + b;
+}
+
+function log(msg) {
+  const box = document.getElementById("logBox");
+  box.innerHTML += msg + "<br>";
+}
+
+function login() {
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+  const captcha = document.getElementById("captchaInput").value;
+  const error = document.getElementById("error");
+  const success = document.getElementById("success");
+
+  if (Date.now() < blockUntil) {
+    error.textContent = "Account blocked. Wait.";
+    return;
+  }
+
+  if (parseInt(captcha) !== captchaAnswer) {
+    error.textContent = "Wrong CAPTCHA";
+    createCaptcha();
+    return;
+  }
+
+  if (username === correctUser && password === correctPass) {
+    success.textContent = "Login Successful";
+    error.textContent = "";
+    attempts = 0;
+    localStorage.clear();
+    log("✔ Successful login");
+  } else {
+    attempts++;
+    localStorage.setItem("attempts", attempts);
+    success.textContent = "";
+
+    log("❌ Failed attempt " + attempts);
+
+    if (attempts >= 5) {
+      blockUntil = Date.now() + 120000;
+      localStorage.setItem("blockUntil", blockUntil);
+      error.textContent = "Blocked for 2 minutes";
+    } else {
+      error.textContent = "Wrong credentials (" + attempts + ")";
+    }
+  }
+
+  createCaptcha();
+  updateTimer();
+}
+
+function updateTimer() {
+  const timer = document.getElementById("timer");
+
+  setInterval(() => {
+    if (Date.now() < blockUntil) {
+      let sec = Math.floor((blockUntil - Date.now())/1000);
+      timer.textContent = "Unlock in " + sec + " sec";
+    } else {
+      timer.textContent = "";
+    }
+  }, 1000);
+}
+</script>
+
+</body>
+</html>
